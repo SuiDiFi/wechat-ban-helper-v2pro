@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>封号查询助手 · WX Report Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070b14;
+      --bg2: #0d1424;
+      --panel: rgba(14, 22, 40, 0.72);
+      --panel-border: rgba(88, 120, 180, 0.18);
+      --text: #e8edf7;
+      --muted: #7b8ba8;
+      --accent: #07c160;
+      --accent2: #00d4aa;
+      --cyan: #3b9eff;
+      --warn: #ffb020;
+      --danger: #ff4d6a;
+      --glow: rgba(7, 193, 96, 0.35);
+      --mono: "JetBrains Mono", monospace;
+      --sans: "Noto Sans SC", -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow-x: hidden; }
+    .bg-grid { position: fixed; inset: 0; background-image: linear-gradient(rgba(59, 158, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 158, 255, 0.04) 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent); pointer-events: none; z-index: 0; }
+    canvas#particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.55; }
+    .orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+    .orb-1 { width: 420px; height: 420px; background: rgba(7, 193, 96, 0.12); top: -120px; left: -80px; }
+    .orb-2 { width: 360px; height: 360px; background: rgba(59, 158, 255, 0.1); top: 40%; right: -100px; }
+    .orb-3 { width: 280px; height: 280px; background: rgba(0, 212, 170, 0.08); bottom: -60px; left: 30%; }
+    .app { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #07c160, #00a854); display: grid; place-items: center; box-shadow: 0 0 24px var(--glow); font-size: 20px; }
+    .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
+    .brand p { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+    .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge { font-size: 11px; font-family: var(--mono); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--panel-border); background: rgba(255,255,255,0.03); color: var(--muted); }
+    .badge.live { color: var(--accent2); border-color: rgba(0, 212, 170, 0.35); background: rgba(0, 212, 170, 0.08); }
+    .badge.live::before { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; margin-right: 6px; animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+    .layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; backdrop-filter: blur(16px); box-shadow: 0 8px 32px rgba(0,0,0,0.35); overflow: hidden; }
+    .panel-head { padding: 16px 20px; border-bottom: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-head h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); }
+    .panel-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+    .panel-body { padding: 20px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 8px; font-family: var(--mono); }
+    input, select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--panel-border); background: rgba(0,0,0,0.25); color: var(--text); font-size: 16px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: var(--sans); margin-bottom: 16px; }
+    input:focus, select:focus { border-color: rgba(7, 193, 96, 0.5); box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.12); }
+    .btn-launch { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; color: #04120a; background: linear-gradient(135deg, #07c160 0%, #00d4aa 100%); box-shadow: 0 4px 24px var(--glow); transition: transform 0.15s, opacity 0.2s; letter-spacing: 0.04em; }
+    .btn-launch:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn-launch:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .field-hint { font-size: 11px; color: var(--muted); margin: -10px 0 16px; line-height: 1.5; }
+    .panel-note { padding: 14px 16px; background: rgba(7,193,96,0.08); border: 1px solid rgba(7,193,96,0.12); border-radius: 12px; color: var(--muted); font-size: 13px; line-height: 1.8; margin-top: 10px; }
+    .result-panel { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 18px; min-height: 420px; }
+    .result-panel h3 { margin-bottom: 14px; font-size: 16px; color: var(--accent2); }
+    .terminal { background: rgba(0,0,0,0.35); border: 1px solid var(--panel-border); border-radius: 10px; padding: 12px; font-family: var(--mono); font-size: 11px; line-height: 1.7; color: #6ee7a8; overflow-y: auto; max-height: 210px; min-height: 140px; }
+    .terminal .line { opacity: 0; animation: fadeLine 0.3s forwards; }
+    .terminal .line.dim { color: var(--muted); }
+    .terminal .line.warn { color: var(--warn); }
+    .terminal .line.err { color: var(--danger); }
+    @keyframes fadeLine { to { opacity: 1; } }
+    .query-summary { padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); margin-top: 16px; color: var(--text); }
+    .query-summary h3 { margin: 0 0 10px; font-size: 15px; color: var(--accent2); }
+    .query-summary p { color: var(--muted); line-height: 1.7; font-size: 13px; }
+    .query-action { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .query-btn { border: none; border-radius: 12px; padding: 12px 18px; font-weight: 600; cursor: pointer; transition: transform 0.15s, box-shadow 0.2s; }
+    .query-btn.primary { background: linear-gradient(135deg, #07c160, #00d4aa); color: #04120a; box-shadow: 0 6px 18px rgba(0,212,170,0.2); }
+    .query-btn.primary:hover { transform: translateY(-1px); }
+    .query-btn.secondary { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.12); }
+    .progress-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--accent2)); border-radius: 999px; transition: width 0.35s ease; box-shadow: 0 0 12px rgba(0, 212, 170, 0.5); }
+    .phase-bar { padding: 14px 20px; border-bottom: 1px solid var(--panel-border); display: block; margin-bottom: 14px; }
+    .phase-label { font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .phase-label span { color: var(--cyan); }
+    .feed { padding: 16px; overflow-y: auto; max-height: 340px; border-radius: 12px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06); }
+    .idle-state { min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 24px; color: var(--muted); }
+    .idle-icon { width: 72px; height: 72px; border-radius: 20px; border: 1px dashed var(--panel-border); display: grid; place-items: center; font-size: 28px; margin-bottom: 16px; opacity: 0.6; }
+    .feed .line { white-space: pre-wrap; display: flex; align-items: center; gap: 8px; animation: slideInLeft 0.4s ease-out; }
+    .feed .line.dim { color: var(--muted); }
+    .feed .line.warn { color: var(--warn); }
+    .feed .line.err { color: var(--danger); }
+    .feed .line.decode { animation: decodeEffect 0.8s ease-out; color: #6ee7a8; }
+    .feed .line.success { color: var(--accent2); }
+    .feed .line .time-tag { color: var(--cyan); font-weight: 600; min-width: 80px; }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes decodeEffect { 
+      0% { opacity: 0.3; text-shadow: 0 0 10px rgba(110, 231, 168, 0.5); } 
+      50% { opacity: 0.8; text-shadow: 0 0 20px rgba(110, 231, 168, 0.8); }
+      100% { opacity: 1; text-shadow: 0 0 5px rgba(110, 231, 168, 0.3); } 
+    }
+    .log-status { font-size: 11px; font-family: var(--mono); padding: 4px 8px; border-radius: 6px; align-self: flex-start; white-space: nowrap; }
+    .log-status.pending { color: var(--cyan); background: rgba(59,158,255,0.12); }
+    .log-status.ok { color: var(--accent2); background: rgba(0,212,170,0.12); }
+    .log-status.err { color: var(--danger); background: rgba(255,77,106,0.12); }
+    @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <canvas id="particles"></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🔍</div>
+        <div>
+          <h1>封号查询助手</h1>
+          <p>WX REPORT SIMULATOR · 独立查询页</p>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge live">AUTH WITH CARD</span>
+        <span class="badge">REAL DATABASE</span>
+        <span class="badge">SEPARATE MODULE</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="panel" style="max-width: 500px; margin:0 auto;">
+        <div class="panel-head"><h2>查询设置</h2><span class="dot"></span></div>
+        <div class="panel-body">
+          <form id="queryForm">
+            <label>查询目标</label>
+            <input type="text" id="targetInput" placeholder="微信号 / 手机号 / 账号ID" autocomplete="off" spellcheck="false" required>
+            <label>授权验证码</label>
+            <input type="text" id="authCodeInput" placeholder="请输入激活码" autocomplete="off" spellcheck="false" maxlength="32" required>
+            <button type="submit" class="btn-launch" id="queryStartBtn">🔎 开始查询</button>
+          </form>
+          <div class="panel-note">
+            使用与主任务相同的卡密授权，先校验卡密后真实查询后台封号记录。若无记录，会直接提示“未检索到封号数据”。
+          </div>
+        </div>
+      </section>
+
+      <section class="panel result-panel" style="margin:0 auto;">
+        <div class="panel-head"><h2>查询进度</h2><span class="dot"></span></div>
+        <div class="panel-body">
+          <div class="phase-bar" id="queryPhase">
+            <div class="phase-label"><span id="queryPhaseText">等待启动</span><span id="queryPhasePct">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="queryProgressFill"></div></div>
+          </div>
+          <div class="feed" id="queryFeed">
+            <div class="idle-state">
+              <div class="idle-icon">⏳</div>
+              <h3>等待查询指令</h3>
+              <p>请先输入目标和授权卡密，然后点击“开始查询”。</p>
+            </div>
+          </div>
+          <div class="query-summary" id="queryResultSummary" style="display:none;"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+    function termLog(text, cls = '', duration = null) {
+      const box = $('#queryFeed');
+      const line = document.createElement('div');
+      line.className = 'line ' + cls;
+      const timestamp = new Date().toLocaleTimeString();
+      const timeTag = duration ? `[${timestamp} +${duration}ms]` : `[${timestamp}]`;
+      line.innerHTML = `<span class="time-tag">${timeTag}</span><span>> ${text}</span>`;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function setQueryProgress(percent, label) {
+      $('#queryProgressFill').style.width = percent + '%';
+      $('#queryPhasePct').textContent = percent + '%';
+      if (label) $('#queryPhaseText').textContent = label;
+    }
+
+    async function verifyCode(code, target) {
+      const res = await fetch('./api/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, target, reportType: '封号查询', accountCount: 1 })
+      });
+      return res.json().then((data) => ({ ok: res.ok, data }));
+    }
+
+    async function queryBanRecords(target) {
+      const res = await fetch(`./api/query-ban?target=${encodeURIComponent(target)}`);
+      return res.json();
+    }
+
+    function renderResult(records, target) {
+      const summary = $('#queryResultSummary');
+      if (!records || records.length === 0) {
+        summary.innerHTML = `
+          <h3>未检索到封号记录</h3>
+          <p>目标 <strong>${target}</strong> 当前在数据库中暂无封号数据。</p>
+        `;
+      } else {
+        const isTaskOnly = records.every((item) => item.source === 'tasks');
+        if (isTaskOnly) {
+          summary.innerHTML = `
+            <h3>已找到举报记录</h3>
+            <p>目标 <strong>${target}</strong> 已存在举报任务记录，属于已提交查询/举报数据。</p>
+            <p>若需精确封号结果，请等待系统进一步同步或导入实际封号数据。</p>
+          `;
+        } else {
+          summary.innerHTML = `
+            <h3>检索到 ${records.length} 条封号记录</h3>
+            ${records.map((item) => `
+              <div style="margin-top:14px; padding:14px; border:1px solid rgba(255,255,255,0.08); border-radius:12px;">
+                <p><strong>目标：</strong>${item.target || item.account_id}</p>
+                <p><strong>昵称：</strong>${item.nickname || '未知'}</p>
+                <p><strong>记录类型：</strong>${item.source === 'tasks' ? '举报任务' : '封号记录'}</p>
+                <p><strong>状态：</strong>${item.source === 'tasks' ? '已提交报告' : item.status === 'banned' ? '已封号' : item.status === 'suspected' ? '疑似封号' : '清白'}</p>
+                <p><strong>举报次数：</strong>${item.report_count != null ? item.report_count : '未知'}</p>
+                <p><strong>原因：</strong>${item.reason || (item.source === 'tasks' ? '已提交举报任务' : '未公开')}</p>
+                <p><strong>最后上报：</strong>${item.last_reported_at ? new Date(item.last_reported_at).toLocaleString() : '暂无'}</p>
+              </div>
+            `).join('')}
+          `;
+        }
+      }
+      summary.style.display = 'block';
+    }
+
+    $('#queryForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const target = $('#targetInput').value.trim();
+      const authCode = $('#authCodeInput').value.trim();
+      if (!target || !authCode) {
+        if (!target) $('#targetInput').classList.add('invalid');
+        if (!authCode) $('#authCodeInput').classList.add('invalid');
+        return;
+      }
+      $('#targetInput').classList.remove('invalid');
+      $('#authCodeInput').classList.remove('invalid');
+      $('#queryFeed').innerHTML = '';
+      $('#queryResultSummary').style.display = 'none';
+      
+      const startTime = Date.now();
+      let lastStepTime = startTime;
+      
+      setQueryProgress(0, '正在验证卡密');
+      termLog('[INIT] 初始化查询引擎...', 'decode');
+      await sleep(300);
+      termLog('系统连接已建立，准备验证证书', 'dim', Date.now() - lastStepTime);
+      lastStepTime = Date.now();
+      await sleep(200);
+
+      setQueryProgress(5, '正在验证卡密');
+      termLog('> AUTH_PROTOCOL → 调用身份验证接口', 'decode');
+      await sleep(400);
+      
+      const auth = await verifyCode(authCode, target);
+      const authDuration = Date.now() - lastStepTime;
+      lastStepTime = Date.now();
+      
+      if (!auth.ok) {
+        setQueryProgress(100, '验证失败');
+        termLog(`✗ VERIFY_FAILED: ${auth.data.error || '卡密验证失败'}`, 'err', authDuration);
+        return;
+      }
+      termLog(`✓ AUTH_SUCCESS [${authDuration}ms]`, 'success', authDuration);
+      await sleep(200);
+      
+      setQueryProgress(18, '正在登录');
+      termLog('[DECRYPT] 正在解密访问凭证...', 'decode');
+      await sleep(350);
+      termLog('密钥交换协议已完成', 'dim', Date.now() - lastStepTime);
+      lastStepTime = Date.now();
+      await sleep(250);
+      
+      setQueryProgress(35, '逆向检索中');
+      termLog('> REVERSE_LOOKUP → 启动逆向信息检索', 'decode');
+      await sleep(400);
+      termLog('正在遍历分布式节点...', 'dim', Date.now() - lastStepTime);
+      lastStepTime = Date.now();
+      await sleep(300);
+      
+      setQueryProgress(52, '节点同步中');
+      termLog('✓ NODE_SYNC_OK: 已连接 3 个数据节点', 'success', Date.now() - lastStepTime);
+      lastStepTime = Date.now();
+      await sleep(200);
+      
+      setQueryProgress(68, '数据库搜索中');
+      termLog('> DB_QUERY → 执行数据库全文搜索', 'decode');
+      await sleep(500);
+      termLog('正在匹配目标签名...', 'dim', Date.now() - lastStepTime);
+      lastStepTime = Date.now();
+      await sleep(300);
+
+      setQueryProgress(82, '解密中');
+      termLog('> PAYLOAD_DECODE → 解密查询结果', 'decode');
+      await sleep(400);
+      
+      const response = await queryBanRecords(target);
+      const queryDuration = Date.now() - lastStepTime;
+      lastStepTime = Date.now();
+      
+      if (!response || !response.success) {
+        setQueryProgress(100, '查询失败');
+        termLog(`✗ QUERY_FAILED: 查询服务异常 [${queryDuration}ms]`, 'err', queryDuration);
+        return;
+      }
+      
+      const records = response.records || [];
+      termLog(`✓ DECODE_OK: 成功解析 ${records.length} 条记录 [${queryDuration}ms]`, 'success', queryDuration);
+      lastStepTime = Date.now();
+      await sleep(200);
+
+      setQueryProgress(95, '结果校验中');
+      termLog('> VERIFY_INTEGRITY → 校验结果完整性', 'decode');
+      await sleep(300);
+      termLog('✓ VERIFICATION_PASSED', 'success', Date.now() - lastStepTime);
+      
+      const totalTime = Date.now() - startTime;
+      setQueryProgress(100, '查询完成');
+      await sleep(200);
+      termLog(`[COMPLETE] 查询已完成 | 总耗时: ${totalTime}ms`, 'decode');
+      
+      renderResult(records, target);
+    });
+
+    $('#targetInput').addEventListener('input', () => $('#targetInput').classList.remove('invalid'));
+    $('#authCodeInput').addEventListener('input', () => $('#authCodeInput').classList.remove('invalid'));
+
+    (function initParticles() {
+      const canvas = document.getElementById('particles');
+      const ctx = canvas.getContext('2d');
+      let w, h, dots = [];
+      function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+      function reset() { dots = Array.from({ length: 60 }, () => ({ x: Math.random()*w, y: Math.random()*h, vx:(Math.random()-0.5)*0.3, vy:(Math.random()-0.5)*0.3, r: Math.random()*1.5+0.5 })); }
+      function draw() { ctx.clearRect(0,0,w,h); dots.forEach(d => { d.x += d.vx; d.y += d.vy; if(d.x<0||d.x>w) d.vx*=-1; if(d.y<0||d.y>h) d.vy*=-1; ctx.beginPath(); ctx.arc(d.x,d.y,d.r,0,Math.PI*2); ctx.fillStyle='rgba(59,158,255,0.35)'; ctx.fill(); }); requestAnimationFrame(draw); }
+      resize(); reset(); draw(); window.addEventListener('resize', () => { resize(); reset(); });
+    })();
+  </script>
+</body>
+</html>

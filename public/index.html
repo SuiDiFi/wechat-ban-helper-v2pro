@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <script>
+    // 检测是否在微信或QQ内置浏览器
+    (function() {
+      var ua = navigator.userAgent.toLowerCase();
+      var isWeChat = ua.indexOf('micromessenger') !== -1 || ua.indexOf('wxwork') !== -1;
+      var isQQ = ua.indexOf('qq/') !== -1 && ua.indexOf('mqqbrowser') === -1;
+      if (isWeChat || isQQ) {
+        window.wxQqBlocked = true;
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>微信封号助手 · WX Report Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070b14;
+      --bg2: #0d1424;
+      --panel: rgba(14, 22, 40, 0.72);
+      --panel-border: rgba(88, 120, 180, 0.18);
+      --text: #e8edf7;
+      --muted: #7b8ba8;
+      --accent: #07c160;
+      --accent2: #00d4aa;
+      --cyan: #3b9eff;
+      --warn: #ffb020;
+      --danger: #ff4d6a;
+      --glow: rgba(7, 193, 96, 0.35);
+      --mono: "JetBrains Mono", monospace;
+      --sans: "Noto Sans SC", -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+    }
+
+    /* 背景 */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(59, 158, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 158, 255, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+  canvas#particles {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { width: 420px; height: 420px; background: rgba(7, 193, 96, 0.12); top: -120px; left: -80px; }
+    .orb-2 { width: 360px; height: 360px; background: rgba(59, 158, 255, 0.1); top: 40%; right: -100px; }
+    .orb-3 { width: 280px; height: 280px; background: rgba(0, 212, 170, 0.08); bottom: -60px; left: 30%; }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    /* 顶栏 */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #07c160, #00a854);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--glow);
+      font-size: 20px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+    }
+
+    .badge.live {
+      color: var(--accent2);
+      border-color: rgba(0, 212, 170, 0.35);
+      background: rgba(0, 212, 170, 0.08);
+    }
+
+    .badge.live::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--accent2);
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* 布局 */
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-head h2 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .panel-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+    .panel-body { padding: 20px; }
+
+    /* 表单 */
+  label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-family: var(--mono);
+    }
+
+    label span { color: var(--danger); }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(0,0,0,0.25);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: var(--sans);
+      margin-bottom: 16px;
+    }
+
+    input:focus, select:focus {
+      border-color: rgba(7, 193, 96, 0.5);
+      box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.12);
+    }
+
+    .type-chips {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .chip {
+      position: relative;
+    }
+
+    .chip input { position: absolute; opacity: 0; pointer-events: none; margin: 0; }
+
+    .chip label {
+      display: block;
+      text-align: center;
+      padding: 10px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255,255,255,0.02);
+      cursor: pointer;
+      margin: 0;
+      font-size: 13px;
+      color: var(--text);
+      font-family: var(--sans);
+      transition: all 0.2s;
+    }
+
+    .chip input:checked + label {
+      border-color: rgba(7, 193, 96, 0.6);
+      background: rgba(7, 193, 96, 0.12);
+      color: var(--accent2);
+    }
+
+    .range-wrap { margin-bottom: 18px; }
+
+    .range-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-bottom: 8px;
+    }
+
+    .range-meta strong { color: var(--accent2); }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      height: 6px;
+      padding: 0;
+      margin: 0;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      border-radius: 999px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 12px var(--glow);
+      cursor: pointer;
+    }
+
+    .disclaimer {
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted);
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(255, 176, 32, 0.06);
+      border: 1px solid rgba(255, 176, 32, 0.15);
+      margin-bottom: 16px;
+    }
+
+    #authCode {
+      font-family: var(--mono);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    #authCode.invalid {
+      border-color: rgba(255, 77, 77, 0.6);
+      box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.12);
+    }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin: -10px 0 16px;
+      line-height: 1.5;
+    }
+
+    .btn-launch {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #04120a;
+      background: linear-gradient(135deg, #07c160 0%, #00d4aa 100%);
+      box-shadow: 0 4px 24px var(--glow);
+      transition: transform 0.15s, opacity 0.2s;
+      letter-spacing: 0.04em;
+    }
+
+    .btn-launch:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn-launch:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* 右侧模拟区 */
+    .sim-area { min-height: 620px; display: flex; flex-direction: column; }
+
+    .target-card {
+      display: none;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      background: rgba(7, 193, 96, 0.04);
+    }
+
+    .target-card.show { display: flex; }
+
+    .radar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid rgba(7, 193, 96, 0.35);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .radar::before, .radar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+    }
+
+    .radar::before {
+      background: conic-gradient(from 0deg, transparent 0deg, rgba(7,193,96,0.5) 60deg, transparent 60deg);
+      animation: spin 2s linear infinite;
+    }
+
+    .radar::after {
+      inset: 12px;
+      background: var(--bg2);
+      border: 1px solid rgba(7,193,96,0.2);
+    }
+
+    .radar.active::before { animation-duration: 0.8s; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .target-info h3 { font-size: 15px; font-weight: 600; }
+    .target-info p { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 4px; }
+
+    .phase-bar {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: none;
+    }
+
+    .phase-bar.show { display: block; }
+
+    .phase-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .phase-label span { color: var(--cyan); }
+
+    .progress-track {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyan), var(--accent2));
+      border-radius: 999px;
+      transition: width 0.35s ease;
+      box-shadow: 0 0 12px rgba(0, 212, 170, 0.5);
+    }
+
+    .sim-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      min-height: 0;
+    }
+
+    @media (max-width: 760px) {
+      .sim-body { grid-template-columns: 1fr; }
+    }
+
+    .feed {
+      padding: 16px;
+      overflow-y: auto;
+      max-height: 420px;
+      border-right: 1px solid var(--panel-border);
+    }
+
+    @media (max-width: 760px) {
+      .feed { border-right: none; border-bottom: 1px solid var(--panel-border); max-height: 280px; }
+    }
+
+    .idle-state {
+      height: 100%;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 24px;
+      color: var(--muted);
+    }
+
+    .idle-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      border: 1px dashed var(--panel-border);
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    .wechat-blocker {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .wechat-blocker.show {
+      display: flex;
+    }
+
+    .blocker-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 40px 30px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .blocker-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    .blocker-card h1 {
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+
+    .blocker-card p {
+      color: #666;
+      font-size: 15px;
+      line-height: 1.8;
+      margin-bottom: 25px;
+    }
+
+    .blocker-tips {
+      background: #f0f4ff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 25px;
+      text-align: left;
+    }
+
+    .blocker-tips h3 {
+      color: #667eea;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .blocker-tips ol {
+      color: #555;
+      font-size: 14px;
+      line-height: 2;
+      padding-left: 20px;
+    }
+
+    .blocker-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 50px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .blocker-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .idle-state h3 { font-size: 16px; color: var(--text); margin-bottom: 8px; }
+    .idle-state p { font-size: 13px; line-height: 1.7; max-width: 320px; }
+
+    .log-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      margin-bottom: 8px;
+      animation: slideIn 0.4s ease both;
+      background: rgba(255,255,255,0.02);
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-item.running { border-color: rgba(59, 158, 255, 0.25); background: rgba(59, 158, 255, 0.06); }
+    .log-item.success { border-color: rgba(7, 193, 96, 0.3); background: rgba(7, 193, 96, 0.08); }
+    .log-item.fail { border-color: rgba(255, 77, 106, 0.3); background: rgba(255, 77, 106, 0.08); }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      font-family: var(--mono);
+    }
+
+    .log-main { flex: 1; min-width: 0; }
+    .log-main .name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .log-main .id { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 4px; }
+    .log-main .action { font-size: 12px; color: var(--muted); }
+    .log-main .action em { font-style: normal; color: var(--text); }
+
+    .log-status {
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 4px 8px;
+      border-radius: 6px;
+      align-self: flex-start;
+      white-space: nowrap;
+    }
+
+    .log-status.pending { color: var(--cyan); background: rgba(59,158,255,0.12); }
+    .log-status.ok { color: var(--accent2); background: rgba(0,212,170,0.12); }
+    .log-status.err { color: var(--danger); background: rgba(255,77,106,0.12); }
+
+    .spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(59,158,255,0.2);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      display: inline-block;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    /* 终端 + 统计 */
+    .side-panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .terminal {
+      flex: 1;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.7;
+      color: #6ee7a8;
+      overflow-y: auto;
+      max-height: 200px;
+      min-height: 140px;
+    }
+
+    .terminal .line { opacity: 0; animation: fadeLine 0.3s forwards; }
+    .terminal .line.dim { color: var(--muted); }
+    .terminal .line.warn { color: var(--warn); }
+    .terminal .line.err { color: var(--danger); }
+
+    @keyframes fadeLine { to { opacity: 1; } }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-box {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .stat-box .val {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: var(--mono);
+      line-height: 1;
+    }
+
+    .stat-box .lbl { font-size: 10px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+    .stat-box.highlight { border-color: rgba(7,193,96,0.4); background: rgba(7,193,96,0.08); }
+    .stat-box.highlight .val { color: var(--accent2); }
+    .stat-box.fail .val { color: var(--danger); }
+
+    .result-banner {
+      display: none;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(7, 193, 96, 0.35);
+      background: linear-gradient(135deg, rgba(7,193,96,0.12), rgba(0,212,170,0.06));
+      text-align: center;
+      animation: popIn 0.5s ease;
+    }
+
+    .result-banner.show { display: block; }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .result-banner .icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: 0 0 24px var(--glow);
+    }
+
+    .result-banner h3 { font-size: 16px; margin-bottom: 4px; }
+    .result-banner p { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+    .rate-ring {
+      width: 100px;
+      height: 100px;
+      margin: 12px auto 0;
+      position: relative;
+    }
+
+    .rate-ring svg { transform: rotate(-90deg); }
+    .rate-ring .pct {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--accent2);
+    }
+
+    .confetti {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      pointer-events: none;
+      z-index: 999;
+      animation: confettiFall 1.2s ease forwards;
+    }
+
+    @keyframes confettiFall {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(120px) rotate(720deg); }
+    }
+
+    .shake { animation: shake 0.4s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    .query-summary {
+      padding: 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      margin-top: 16px;
+      color: var(--text);
+    }
+    .query-summary h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: var(--accent2);
+    }
+    .query-summary p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+    .query-action {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .query-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .query-btn.primary {
+      background: linear-gradient(135deg, #07c160, #00d4aa);
+      color: #04120a;
+      box-shadow: 0 6px 18px rgba(0,212,170,0.2);
+    }
+    .query-btn.primary:hover {
+      transform: translateY(-1px);
+    }
+    .query-btn.secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    /* 弹窗样式 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      width: 100%;
+      max-width: 1200px;
+      max-height: 90vh;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 20px;
+      display: grid;
+      place-items: center;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-body {
+      max-height: calc(90vh - 70px);
+      overflow-y: auto;
+    }
+
+    /* 简化首页布局 */
+    .layout {
+      display: block;
+    }
+
+    .sim-area {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- 微信/QQ 浏览器引导层 -->
+  <div class="wechat-blocker" id="wechatBlocker">
+    <div class="blocker-card">
+      <div class="blocker-icon">⚠️</div>
+      <h1>请在浏览器中打开</h1>
+      <p>当前在微信/QQ中无法正常使用此功能，请按以下步骤操作：</p>
+      <div class="blocker-tips">
+        <h3>操作步骤：</h3>
+        <ol>
+          <li>点击右上角「...」</li>
+          <li>选择「在浏览器中打开」</li>
+          <li>点击下方按钮</li>
+        </ol>
+      </div>
+      <button class="blocker-btn" onclick="hideBlocker()">我已在浏览器打开</button>
+    </div>
+  </div>
+
+  <div class="bg-grid"></div>
+  <canvas id="particles"></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1>微信封号助手·Pro</h1>
+          <p>WX REPORT SIMULATOR v2.0（娱乐版）</p>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge live">SIMULATION MODE</span>
+        <span class="badge">SECURE CHANNEL</span>
+        <span class="badge">DEMO ONLY</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- 配置面板 -->
+      <section class="panel" style="max-width: 500px; margin: 0 auto;">
+        <div class="panel-head"><h2>Task Config</h2><span class="dot"></span></div>
+        <div class="panel-body">
+          <form id="simForm">
+            <label>目标标识 <span>*</span></label>
+            <input type="text" id="target" name="target" placeholder="微信号 / 手机号" required autocomplete="off">
+
+            <label>举报类型 <span>*</span></label>
+            <div class="type-chips">
+              <div class="chip"><input type="radio" name="type" id="c1" value="诈骗欺诈" checked><label for="c1">诈骗欺诈</label></div>
+              <div class="chip"><input type="radio" name="type" id="c2" value="骚扰辱骂"><label for="c2">骚扰辱骂</label></div>
+              <div class="chip"><input type="radio" name="type" id="c3" value="虚假信息"><label for="c3">虚假信息</label></div>
+              <div class="chip"><input type="radio" name="type" id="c4" value="侵权违规"><label for="c4">侵权违规</label></div>
+            </div>
+
+            <div class="range-wrap">
+              <div class="range-meta">
+                <span>执行账号数量</span>
+                <strong id="countLabel">12 个</strong>
+              </div>
+              <input type="range" id="count" min="6" max="24" value="12">
+            </div>
+
+            <div class="disclaimer">
+              ⚠ 本系统为<strong>数据拉取</strong>，所有数据均为加密保护，隐私协议开启，请勿用于违法用途。恶意举报属于非法举报，请自行承担法律后果 ⚠ 
+            </div>
+
+            <label for="authCode">授权验证码 <span>*</span></label>
+            <input
+              type="text"
+              id="authCode"
+              name="authCode"
+              placeholder="请输入授权验证码"
+              required
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="32"
+            >
+            <!--<p class="field-hint">向管理员获取验证码；同款系统搭建联系VX:TQSC3000。--></p>
+
+            <button type="submit" class="btn-launch" id="launchBtn">▶ 启动举报任务</button>
+          </form>
+
+          <div class="query-summary" style="margin-top:24px;">
+            <h3>独立封号查询助手</h3>
+            <p>查询功能已拆分成单独页面，<a href="/query" style="color:#00d4aa; text-decoration:underline;">点击前往封号查询助手</a></p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 任务控制台弹窗 -->
+    <div class="modal-overlay" id="taskModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>📊 任务控制台</h2>
+          <button class="modal-close" id="closeModal" title="关闭">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="sim-area" style="display: block; border: none; border-radius: 0;">
+            <div class="target-card" id="targetCard">
+              <div class="radar" id="radar"></div>
+              <div class="target-info">
+                <h3 id="targetDisplay">—</h3>
+                <p id="targetMeta">等待任务...</p>
+              </div>
+            </div>
+
+            <div class="phase-bar" id="phaseBar">
+              <div class="phase-label"><span id="phaseText">INIT</span><span id="phasePct">0%</span></div>
+              <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+
+            <div class="sim-body">
+              <div class="feed" id="feed">
+                <div class="idle-state" id="idleState">
+                  <div class="idle-icon">◎</div>
+                  <h3>任务控制台待命中</h3>
+                  <p>填写目标信息后点击启动，系统将执行多账号并发举报流程 | 成功/失败 | 统计成功率</p>
+                </div>
+              </div>
+
+              <div class="side-panel">
+                <div class="terminal" id="terminal">&gt; system ready...</div>
+                <div class="stats-grid">
+                  <div class="stat-box"><div class="val" id="statTotal">0</div><div class="lbl">DISPATCHED</div></div>
+                  <div class="stat-box highlight"><div class="val" id="statOk">0</div><div class="lbl">SUCCESS</div></div>
+                  <div class="stat-box fail"><div class="val" id="statFail">0</div><div class="lbl">FAILED</div></div>
+                  <div class="stat-box highlight"><div class="val" id="statRate">—</div><div class="lbl">SUCCESS RATE</div></div>
+                </div>
+                <div class="result-banner" id="resultBanner">
+                  <div class="icon">✓</div>
+                  <h3>任务执行完毕</h3>
+                  <p id="resultSub">—</p>
+                  <div class="rate-ring" id="rateRing"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ——— 工具函数 ———
+    const $ = (s) => document.querySelector(s);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+    const pick = (arr) => arr[rand(0, arr.length - 1)];
+
+    const PREFIXES = ["wx", "user", "wechat", "账号", "微友"];
+    const NAMES = ["清风", "明月", "星辰", "阿杰", "小林", "晓雨", "大白", "橙子", "北岸", "南城", "子涵", "思远", "安然", "墨白"];
+    const SUFFIXES = ["2024", "88", "666", "007", "pro", "x", "vip"];
+    const FAIL_REASONS = [
+      "账号风控限制",
+      "请求频率过高",
+      "网络超时",
+      "凭证校验失败",
+      "目标不可达",
+      "接口返回 429",
+    ];
+    const AVATAR_COLORS = ["#3b9eff", "#07c160", "#a855f7", "#f59e0b", "#ec4899", "#06b6d4"];
+
+    function maskTarget(v) {
+      v = v.trim();
+      if (/^1\d{10}$/.test(v)) return v.slice(0, 3) + "****" + v.slice(-4);
+      if (v.length <= 4) return v[0] + "***";
+      return v.slice(0, 2) + "***" + v.slice(-2);
+    }
+
+    function genAccount() {
+      const style = rand(1, 3);
+      let name, id;
+      if (style === 1) {
+        name = pick(NAMES) + pick(SUFFIXES);
+        id = pick(PREFIXES) + "_" + rand(10000, 99999);
+      } else if (style === 2) {
+        name = "微信用户" + rand(1000, 9999);
+        id = "wxid_" + rand(100000, 999999);
+      } else {
+        name = pick(NAMES) + pick(NAMES);
+        id = pick(PREFIXES) + rand(100, 999);
+      }
+      const avatarNum = rand(1, 112);
+      const avatarSrc = `/img/avatar_${String(avatarNum).padStart(3, '0')}.jpg`;
+      return { name, id, avatar: avatarSrc, color: pick(AVATAR_COLORS), initial: name[0] };
+    }
+
+    function termLog(text, cls = "") {
+      const t = $("#terminal");
+      const line = document.createElement("div");
+      line.className = "line " + cls;
+      line.textContent = "> " + text;
+      t.appendChild(line);
+      t.scrollTop = t.scrollHeight;
+    }
+
+    function queryTermLog(text, cls = "") {
+      const t = $("#queryTerminal");
+      const line = document.createElement("div");
+      line.className = "line " + cls;
+      line.textContent = "> " + text;
+      t.appendChild(line);
+      t.scrollTop = t.scrollHeight;
+    }
+
+    function updateStats(total, ok, fail) {
+      $("#statTotal").textContent = total;
+      $("#statOk").textContent = ok;
+      $("#statFail").textContent = fail;
+      const rate = total ? Math.round((ok / total) * 100) : 0;
+      $("#statRate").textContent = total ? rate + "%" : "—";
+      return rate;
+    }
+
+    function setProgress(pct, text) {
+      $("#progressFill").style.width = pct + "%";
+      $("#phasePct").textContent = Math.round(pct) + "%";
+      if (text) $("#phaseText").textContent = text;
+    }
+
+    function renderRateRing(pct) {
+      const r = 42;
+      const c = 2 * Math.PI * r;
+      const offset = c - (pct / 100) * c;
+      $("#rateRing").innerHTML = `
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#00d4aa" stroke-width="8"
+            stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"
+            style="transition: stroke-dashoffset 1s ease"/>
+        </svg>
+        <div class="pct">${pct}%</div>
+      `;
+    }
+
+    function spawnConfetti() {
+      const colors = ["#07c160", "#00d4aa", "#3b9eff", "#ffb020"];
+      for (let i = 0; i < 30; i++) {
+        const el = document.createElement("div");
+        el.className = "confetti";
+        el.style.left = rand(20, 80) + "%";
+        el.style.top = rand(30, 50) + "%";
+        el.style.background = pick(colors);
+        el.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1200);
+      }
+    }
+
+    // ——— 粒子背景 ———
+    (function initParticles() {
+      const canvas = $("#particles");
+      const ctx = canvas.getContext("2d");
+      let w, h, dots = [];
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+
+      function reset() {
+        dots = Array.from({ length: 60 }, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          r: Math.random() * 1.5 + 0.5,
+        }));
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        dots.forEach((d) => {
+          d.x += d.vx; d.y += d.vy;
+          if (d.x < 0 || d.x > w) d.vx *= -1;
+          if (d.y < 0 || d.y > h) d.vy *= -1;
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(59, 158, 255, 0.35)";
+          ctx.fill();
+        });
+        requestAnimationFrame(draw);
+      }
+
+      resize(); reset(); draw();
+      window.addEventListener("resize", () => { resize(); reset(); });
+    })();
+
+    // ——— 滑块 ———
+    $("#count").addEventListener("input", (e) => {
+      $("#countLabel").textContent = e.target.value + " 个";
+    });
+
+    let running = false;
+
+    async function verifyAuthCode(code, target, reportType, accountCount) {
+      try {
+        const res = await fetch("/api/verify-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, target, reportType, accountCount }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return { ok: false, msg: data.error || "授权验证码无效或已用尽" };
+        }
+        return { ok: true, codeId: data.codeId };
+      } catch {
+        if (code === "DEMO-2026-TEST") return { ok: true, codeId: null };
+        return {
+          ok: false,
+          msg: "无法连接验证服务，请购买激活码",
+        };
+      }
+    }
+
+    $("#authCode").addEventListener("input", () => {
+      $("#authCode").classList.remove("invalid");
+    });
+
+    // 关闭弹窗
+    $("#closeModal").addEventListener("click", () => {
+      $("#taskModal").classList.remove("show");
+    });
+
+    // ——— 主流程 ———
+    $("#simForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (running) return;
+
+      const target = $("#target").value.trim();
+      const authCode = $("#authCode").value.trim().toUpperCase();
+      const type = document.querySelector('input[name="type"]:checked').value;
+      const count = parseInt($("#count").value, 10);
+
+      if (!target) return;
+
+      if (!authCode) {
+        $("#authCode").classList.add("invalid");
+        document.body.classList.add("shake");
+        setTimeout(() => document.body.classList.remove("shake"), 400);
+        termLog("ERROR: 请输入授权验证码", "err");
+        return;
+      }
+
+      $("#authCode").value = authCode;
+      running = true;
+      $("#launchBtn").disabled = true;
+      
+      // 显示弹窗
+      $("#taskModal").classList.add("show");
+      
+      termLog("verifying authorization code...");
+      const auth = await verifyAuthCode(authCode, target, type, count);
+      if (!auth.ok) {
+        running = false;
+        $("#launchBtn").disabled = false;
+        $("#authCode").classList.add("invalid");
+        document.body.classList.add("shake");
+        setTimeout(() => document.body.classList.remove("shake"), 400);
+        termLog("ERROR: " + auth.msg, "err");
+        return;
+      }
+      termLog("authorization verified", "dim");
+      
+      // 启动任务，更新激活码使用次数
+      console.log('[DEBUG] auth.codeId:', auth.codeId);
+      let currentTaskId = null;
+      if (auth.codeId) {
+        termLog("starting task...");
+        try {
+          console.log('[DEBUG] 准备调用 /api/start-task');
+          const startRes = await fetch("/api/start-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              target, 
+              reportType: type, 
+              accountCount: count, 
+              codeId: auth.codeId 
+            }),
+          });
+          console.log('[DEBUG] /api/start-task 响应状态:', startRes.status);
+          if (startRes.ok) {
+            const result = await startRes.json();
+            console.log('[DEBUG] /api/start-task 响应数据:', result);
+            currentTaskId = result.taskId;
+            termLog("task created successfully");
+          } else {
+            const errText = await startRes.text();
+            console.error('[DEBUG] /api/start-task 失败:', errText);
+          }
+        } catch (err) {
+          console.error("[DEBUG] 启动任务异常:", err);
+          termLog("ERROR: " + err.message, "err");
+        }
+      } else {
+        console.log('[DEBUG] 没有 codeId，跳过调用 /api/start-task');
+      }
+
+      // 简单校验
+      const isPhone = /^1[3-9]\d{9}$/.test(target);
+      const isWx = /^[a-zA-Z][a-zA-Z0-9_-]{5,19}$/.test(target) || target.length >= 2;
+      if (!isPhone && !isWx) {
+        running = false;
+        $("#launchBtn").disabled = false;
+        document.body.classList.add("shake");
+        setTimeout(() => document.body.classList.remove("shake"), 400);
+        termLog("ERROR: 目标格式无效", "err");
+        return;
+      }
+
+      $("#resultBanner").classList.remove("show");
+      $("#idleState")?.remove();
+
+      const feed = $("#feed");
+      feed.innerHTML = "";
+
+      // UI 初始化
+      $("#targetCard").classList.add("show");
+      $("#phaseBar").classList.add("show");
+      $("#radar").classList.add("active");
+      $("#targetDisplay").textContent = maskTarget(target);
+      $("#targetMeta").textContent = `TYPE: ${type} | NODES: ${count} | STATUS: RUNNING`;
+      $("#terminal").innerHTML = "";
+      updateStats(0, 0, 0);
+      setProgress(0, "INITIALIZING");
+
+      termLog("connecting to simulation cluster...");
+      await sleep(400);
+      termLog("target locked: " + maskTarget(target));
+      await sleep(300);
+      termLog(`generating ${count} virtual account nodes...`, "dim");
+      setProgress(8, "GENERATING NODES");
+
+      const accounts = Array.from({ length: count }, genAccount);
+      // 随机决定失败数量：约 15%~35%
+      const failCount = Math.max(1, Math.min(count - 2, Math.round(count * (0.15 + Math.random() * 0.2))));
+      const failIndices = new Set();
+      while (failIndices.size < failCount) {
+        failIndices.add(rand(0, count - 1));
+      }
+
+      await sleep(600);
+      termLog("dispatch queue ready. starting batch report...", "dim");
+      setProgress(15, "DISPATCHING");
+
+      let ok = 0, fail = 0;
+
+      for (let i = 0; i < count; i++) {
+        const acc = accounts[i];
+        const willFail = failIndices.has(i);
+        const pct = 15 + ((i + 1) / count) * 75;
+        setProgress(pct, `REPORTING ${i + 1}/${count}`);
+
+        const item = document.createElement("div");
+        item.className = "log-item running";
+        item.innerHTML = `
+          <div class="avatar" style="background:${acc.color};overflow:hidden;">
+            <img src="${acc.avatar}" alt="${acc.name}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;" onerror="this.style.display='none';this.parentElement.innerHTML='${acc.initial}';">
+          </div>
+          <div class="log-main">
+            <div class="name">${acc.name}</div>
+            <div class="id">${acc.id}</div>
+            <div class="action">正在向 <em>${maskTarget(target)}</em> 提交「${type}」举报...</div>
+          </div>
+          <span class="log-status pending"><span class="spinner"></span>PENDING</span>
+        `;
+        console.log('[DEBUG] 加载头像:', acc.avatar);
+        feed.insertBefore(item, feed.firstChild);
+
+        termLog(`[${acc.id}] submitting report...`);
+        await sleep(rand(350, 750));
+
+        const statusEl = item.querySelector(".log-status");
+        const actionEl = item.querySelector(".action");
+
+        if (willFail) {
+          fail++;
+          const reason = pick(FAIL_REASONS);
+          item.className = "log-item fail";
+          statusEl.className = "log-status err";
+          statusEl.textContent = "FAILED";
+          actionEl.innerHTML = `举报失败 · <em>${reason}</em>`;
+          termLog(`[${acc.id}] FAILED - ${reason}`, "err");
+        } else {
+          ok++;
+          item.className = "log-item success";
+          statusEl.className = "log-status ok";
+          statusEl.textContent = "SUCCESS";
+          actionEl.innerHTML = `举报已成功提交 · 工单 <em>#${rand(100000, 999999)}</em>`;
+          termLog(`[${acc.id}] report accepted`, "dim");
+        }
+
+        updateStats(i + 1, ok, fail);
+      }
+
+      setProgress(100, "COMPLETED");
+      $("#radar").classList.remove("active");
+      $("#targetMeta").textContent = `TYPE: ${type} | NODES: ${count} | STATUS: COMPLETED`;
+
+      const rate = updateStats(count, ok, fail);
+      const duration = (count * 0.5 + rand(1, 3)).toFixed(1);
+
+      termLog(`batch complete. success=${ok} fail=${fail} rate=${rate}%`);
+      termLog("TASK FINISHED ✓", "warn");
+
+      // 更新任务状态和统计数据
+      if (currentTaskId) {
+        termLog("updating task status...");
+        try {
+          await fetch("/api/update-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId: currentTaskId,
+              status: "completed",
+              successCount: ok,
+              failCount: fail
+            }),
+          });
+          termLog("task status updated");
+        } catch (err) {
+          console.error("[DEBUG] 更新任务状态失败:", err);
+        }
+      }
+
+      $("#resultSub").textContent = `${count} 节点 · 耗时 ${duration}s · 成功率 ${rate}%`;
+      renderRateRing(rate);
+      $("#resultBanner").classList.add("show");
+      spawnConfetti();
+
+      running = false;
+      $("#launchBtn").disabled = false;
+      $("#launchBtn").textContent = "↻ 再次举报";
+    });
+
+    // 显示/隐藏微信/QQ引导层
+    function hideBlocker() {
+      document.getElementById('wechatBlocker').classList.remove('show');
+    }
+
+    // 页面加载时检测并显示引导层
+    (function checkAndShowBlocker() {
+      if (window.wxQqBlocked) {
+        document.getElementById('wechatBlocker').classList.add('show');
+      }
+    })();
+
+    // 页面加载时预加载常用头像
+    (function preloadAvatars() {
+      console.log('[DEBUG] 开始预加载头像...');
+      const avatarCount = 112;
+      const preloadCount = 20; // 预加载前20张
+      for (let i = 1; i <= preloadCount; i++) {
+        const img = new Image();
+        img.src = `/img/avatar_${String(i).padStart(3, '0')}.jpg`;
+      }
+      console.log('[DEBUG] 头像预加载完成');
+    })();
+  </script>
+</body>
+</html>

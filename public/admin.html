@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>管理后台 · 微信举报模拟器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070b14;
+      --bg2: #0d1424;
+      --panel: rgba(14, 22, 40, 0.72);
+      --panel-border: rgba(88, 120, 180, 0.18);
+      --text: #e8edf7;
+      --muted: #7b8ba8;
+      --accent: #07c160;
+      --accent2: #00d4aa;
+      --cyan: #3b9eff;
+      --warn: #ffb020;
+      --danger: #ff4d6a;
+      --glow: rgba(7, 193, 96, 0.35);
+      --mono: "JetBrains Mono", monospace;
+      --sans: "Noto Sans SC", -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(59, 158, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 158, 255, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #07c160, #00a854);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 24px var(--glow);
+      font-size: 20px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .panel-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-head h2 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .panel-body { padding: 20px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .stat-card {
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255,255,255,0.02);
+      text-align: center;
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      font-family: var(--mono);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .stat-card.success .value { color: var(--accent2); }
+    .stat-card.danger .value { color: var(--danger); }
+    .stat-card.info .value { color: var(--cyan); }
+
+    .login-container {
+      max-width: 400px;
+      margin: 80px auto;
+      text-align: center;
+    }
+
+    .login-form {
+      padding: 40px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-family: var(--mono);
+      text-align: left;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(0,0,0,0.25);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: var(--sans);
+      margin-bottom: 20px;
+    }
+
+    input:focus {
+      border-color: rgba(7, 193, 96, 0.5);
+      box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.12);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #04120a;
+      background: linear-gradient(135deg, #07c160 0%, #00d4aa 100%);
+      box-shadow: 0 4px 24px var(--glow);
+      transition: transform 0.15s, opacity 0.2s;
+      letter-spacing: 0.04em;
+    }
+
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 13px;
+      width: auto;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ff4d6a 0%, #ff6b8a 100%);
+      color: #fff;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    th {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      font-family: var(--mono);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: rgba(7, 193, 96, 0.12);
+      color: var(--accent2);
+    }
+
+    .status-expired {
+      background: rgba(255, 176, 32, 0.12);
+      color: var(--warn);
+    }
+
+    .status-disabled {
+      background: rgba(255, 77, 106, 0.12);
+      color: var(--danger);
+    }
+
+    .code-display {
+      font-family: var(--mono);
+      background: rgba(0,0,0,0.3);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      user-select: all;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .hidden { display: none !important; }
+
+    .error-message {
+      background: rgba(255, 77, 106, 0.12);
+      border: 1px solid rgba(255, 77, 106, 0.3);
+      color: var(--danger);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .success-message {
+      background: rgba(7, 193, 96, 0.12);
+      border: 1px solid rgba(7, 193, 96, 0.3);
+      color: var(--accent2);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .logout-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: var(--mono);
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .copy-btn {
+      background: rgba(59, 158, 255, 0.12);
+      border: 1px solid rgba(59, 158, 255, 0.3);
+      color: var(--cyan);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--mono);
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: rgba(59, 158, 255, 0.2);
+    }
+
+    .batch-copy-btn {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: rgba(59, 158, 255, 0.12);
+      border: 1px solid rgba(59, 158, 255, 0.3);
+      color: var(--cyan);
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .batch-copy-btn:hover {
+      background: rgba(59, 158, 255, 0.2);
+    }
+
+    .codes-display {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .action-buttons { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🔧</div>
+        <div>
+          <h1>管理后台</h1>
+          <p>ADMIN PANEL v2.0</p>
+        </div>
+      </div>
+      <button class="logout-btn hidden" id="logoutBtn" onclick="logout()">退出登录</button>
+    </header>
+
+    <div id="loginSection" class="login-container">
+      <div class="panel login-form">
+        <div class="panel-head">
+          <h2>管理员登录</h2>
+        </div>
+        <div class="panel-body">
+          <form id="loginForm" onsubmit="handleLogin(event)">
+            <label for="password">管理员密码</label>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              placeholder="请输入管理员密码" 
+              required 
+              autocomplete="current-password"
+            >
+            <button type="submit" class="btn" id="loginBtn">登录</button>
+          </form>
+          <div id="loginError" class="error-message hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminSection" class="hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>系统统计</h2>
+        </div>
+        <div class="panel-body">
+          <div class="stats-grid" id="statsGrid">
+            <div class="stat-card info">
+              <div class="value" id="totalCodes">0</div>
+              <div class="label">总激活码数</div>
+            </div>
+            <div class="stat-card success">
+              <div class="value" id="activeCodes">0</div>
+              <div class="label">活跃激活码</div>
+            </div>
+            <div class="stat-card info">
+              <div class="value" id="totalUses">0</div>
+              <div class="label">总使用次数</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="value" id="totalTasks">0</div>
+              <div class="label">总任务数</div>
+            </div>
+            <div class="stat-card success">
+              <div class="value" id="completedTasks">0</div>
+              <div class="label">已完成任务</div>
+            </div>
+            <div class="stat-card info">
+              <div class="value" id="totalSuccess">0</div>
+              <div class="label">成功举报数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>批量生成激活码</h2>
+        </div>
+        <div class="panel-body">
+          <form id="generateForm" onsubmit="handleGenerate(event)">
+            <div class="form-row">
+              <div>
+                <label for="genCount">生成数量</label>
+                <input type="number" id="genCount" name="genCount" min="1" max="100" value="10" required>
+              </div>
+              <div>
+                <label for="maxUses">最大使用次数</label>
+                <input type="number" id="maxUses" name="maxUses" min="1" max="1000" value="50" required>
+              </div>
+              <div>
+                <label for="expiresAt">过期时间（可选）</label>
+                <input type="datetime-local" id="expiresAt" name="expiresAt">
+              </div>
+            </div>
+            <button type="submit" class="btn" id="generateBtn">生成激活码</button>
+          </form>
+          <div id="generateResult" class="success-message hidden"></div>
+          <div id="codesDisplayContainer" class="hidden">
+            <div id="codesDisplay" class="codes-display"></div>
+            <button class="batch-copy-btn" onclick="batchCopyCodes()">📋 一键复制所有卡密</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>激活码列表</h2>
+          <button class="btn btn-sm" onclick="loadCodes()">刷新列表</button>
+        </div>
+        <div class="panel-body">
+          <div class="table-container">
+            <table id="codesTable">
+              <thead>
+                <tr>
+                  <th>激活码</th>
+                  <th>状态</th>
+                  <th>使用次数</th>
+                  <th>最大次数</th>
+                  <th>任务数</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="codesTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>查询记录</h2>
+          <button class="btn btn-sm" onclick="loadQueryLogs()">刷新记录</button>
+        </div>
+        <div class="panel-body">
+          <div class="table-container">
+            <table id="queryLogsTable">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>卡密</th>
+                  <th>目标</th>
+                  <th>类型</th>
+                  <th>数量</th>
+                  <th>IP</th>
+                  <th>设备</th>
+                  <th>状态</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody id="queryLogsTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let authToken = localStorage.getItem('adminToken');
+    let lastGeneratedCodes = [];
+
+    function checkAuth() {
+      if (authToken) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('adminSection').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        loadStats();
+        loadCodes();
+        loadQueryLogs();
+      } else {
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('adminSection').classList.add('hidden');
+        document.getElementById('logoutBtn').classList.add('hidden');
+      }
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const password = document.getElementById('password').value;
+      const loginBtn = document.getElementById('loginBtn');
+      const errorDiv = document.getElementById('loginError');
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = '登录中...';
+      errorDiv.classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          authToken = data.token;
+          localStorage.setItem('adminToken', authToken);
+          checkAuth();
+        } else {
+          errorDiv.textContent = data.error || '登录失败';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorDiv.textContent = '网络错误，请稍后重试';
+        errorDiv.classList.remove('hidden');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '登录';
+      }
+    }
+
+    function logout() {
+      authToken = null;
+      localStorage.removeItem('adminToken');
+      checkAuth();
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('totalCodes').textContent = data.codes.total_codes || 0;
+          document.getElementById('activeCodes').textContent = data.codes.active_codes || 0;
+          document.getElementById('totalUses').textContent = data.codes.total_uses || 0;
+          document.getElementById('totalTasks').textContent = data.tasks.total_tasks || 0;
+          document.getElementById('completedTasks').textContent = data.tasks.completed_tasks || 0;
+          document.getElementById('totalSuccess').textContent = data.tasks.total_success || 0;
+        }
+      } catch (error) {
+        console.error('加载统计信息失败:', error);
+      }
+    }
+
+    async function loadCodes() {
+      try {
+        const response = await fetch('/api/admin/codes', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const codes = await response.json();
+          renderCodes(codes);
+        }
+      } catch (error) {
+        console.error('加载激活码列表失败:', error);
+      }
+    }
+
+    async function loadQueryLogs() {
+      try {
+        const response = await fetch('/api/admin/query-logs?limit=200', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const logs = await response.json();
+          renderQueryLogs(logs);
+        }
+      } catch (error) {
+        console.error('加载查询记录失败:', error);
+      }
+    }
+
+    function renderQueryLogs(logs) {
+      const tbody = document.getElementById('queryLogsTableBody');
+      tbody.innerHTML = '';
+
+      logs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${new Date(log.created_at).toLocaleString('zh-CN')}</td>
+          <td>${log.code || ''}</td>
+          <td>${log.target || ''}</td>
+          <td>${log.report_type || ''}</td>
+          <td>${log.account_count || ''}</td>
+          <td>${log.ip || ''}</td>
+          <td>${log.device_info || ''}</td>
+          <td>${log.status}</td>
+          <td>${log.message || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderCodes(codes) {
+      const tbody = document.getElementById('codesTableBody');
+      tbody.innerHTML = '';
+
+      codes.forEach(code => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <span class="code-display">${code.code}</span>
+            <button class="copy-btn" onclick="copyCode('${code.code}')">复制</button>
+          </td>
+          <td><span class="status-badge status-${code.status}">${code.status}</span></td>
+          <td>${code.used_count}</td>
+          <td>${code.max_uses}</td>
+          <td>${code.total_tasks || 0}</td>
+          <td>${new Date(code.created_at).toLocaleString('zh-CN')}</td>
+          <td>
+            <div class="action-buttons">
+              ${code.status === 'active' ? 
+                `<button class="btn btn-sm btn-danger" onclick="updateCodeStatus(${code.id}, 'disabled')">禁用</button>` :
+                `<button class="btn btn-sm" onclick="updateCodeStatus(${code.id}, 'active')">启用</button>`
+              }
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function handleGenerate(event) {
+      event.preventDefault();
+      const count = parseInt(document.getElementById('genCount').value);
+      const maxUses = parseInt(document.getElementById('maxUses').value);
+      const expiresAt = document.getElementById('expiresAt').value || null;
+      const generateBtn = document.getElementById('generateBtn');
+      const resultDiv = document.getElementById('generateResult');
+      const codesDisplayContainer = document.getElementById('codesDisplayContainer');
+      const codesDisplay = document.getElementById('codesDisplay');
+
+      generateBtn.disabled = true;
+      generateBtn.textContent = '生成中...';
+      resultDiv.classList.add('hidden');
+      codesDisplayContainer.classList.add('hidden');
+      lastGeneratedCodes = [];
+
+      try {
+        const response = await fetch('/api/admin/codes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ count, maxUses, expiresAt })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.textContent = data.message;
+          resultDiv.classList.remove('hidden');
+          
+          if (data.codes && data.codes.length > 0) {
+            lastGeneratedCodes = data.codes.map(c => c.code);
+            codesDisplay.textContent = lastGeneratedCodes.join('\n');
+            codesDisplayContainer.classList.remove('hidden');
+          }
+          
+          loadCodes();
+          loadStats();
+        } else {
+          resultDiv.textContent = data.error || '生成失败';
+          resultDiv.className = 'error-message';
+          resultDiv.classList.remove('hidden');
+        }
+      } catch (error) {
+        resultDiv.textContent = '网络错误，请稍后重试';
+        resultDiv.className = 'error-message';
+        resultDiv.classList.remove('hidden');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = '生成激活码';
+      }
+    }
+
+    async function updateCodeStatus(codeId, status) {
+      try {
+        const response = await fetch(`/api/admin/codes/${codeId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ status })
+        });
+
+        if (response.ok) {
+          loadCodes();
+          loadStats();
+        }
+      } catch (error) {
+        console.error('更新激活码状态失败:', error);
+      }
+    }
+
+    function copyCode(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        alert('激活码已复制到剪贴板');
+      }).catch(() => {
+        prompt('请手动复制激活码:', code);
+      });
+    }
+
+    function batchCopyCodes() {
+      if (lastGeneratedCodes.length === 0) {
+        alert('没有可复制的卡密');
+        return;
+      }
+      const codesText = lastGeneratedCodes.join('\n');
+      navigator.clipboard.writeText(codesText).then(() => {
+        alert(`已成功复制 ${lastGeneratedCodes.length} 个卡密到剪贴板`);
+      }).catch(() => {
+        prompt('请手动复制卡密:', codesText);
+      });
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>
